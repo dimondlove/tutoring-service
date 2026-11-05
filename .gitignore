@@ -1,0 +1,10 @@
+.env
+backups/*
+!backups/demo.dump
+!backups/.gitkeep
+backend/build/
+backend/.gradle/
+.idea/
+*.iml
+.vscode/
+.DS_Store
