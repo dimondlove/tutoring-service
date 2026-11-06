@@ -5,12 +5,16 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.vsuet.team.tutoringbackend.auth.dto.AuthResponse;
+import ru.vsuet.team.tutoringbackend.auth.dto.LoginRequest;
+import ru.vsuet.team.tutoringbackend.auth.dto.RegisterRequest;
+import ru.vsuet.team.tutoringbackend.auth.service.JwtService;
 import ru.vsuet.team.tutoringbackend.common.ConflictException;
 import ru.vsuet.team.tutoringbackend.common.UnauthorizedException;
 import ru.vsuet.team.tutoringbackend.user.Role;
 import ru.vsuet.team.tutoringbackend.user.User;
-import ru.vsuet.team.tutoringbackend.user.UserRepository;
-import ru.vsuet.team.tutoringbackend.user.UserResponse;
+import ru.vsuet.team.tutoringbackend.user.repository.UserRepository;
+import ru.vsuet.team.tutoringbackend.user.dto.UserResponse;
 
 @Service
 @RequiredArgsConstructor

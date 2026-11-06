@@ -4,6 +4,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import ru.vsuet.team.tutoringbackend.auth.dto.AuthResponse;
+import ru.vsuet.team.tutoringbackend.auth.dto.LoginRequest;
+import ru.vsuet.team.tutoringbackend.auth.dto.RegisterRequest;
 
 @RestController
 @RequestMapping("/api/auth")

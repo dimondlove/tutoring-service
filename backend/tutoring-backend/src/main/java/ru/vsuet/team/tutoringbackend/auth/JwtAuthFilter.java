@@ -11,8 +11,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+import ru.vsuet.team.tutoringbackend.auth.service.JwtService;
 import ru.vsuet.team.tutoringbackend.user.User;
-import ru.vsuet.team.tutoringbackend.user.UserRepository;
+import ru.vsuet.team.tutoringbackend.user.repository.UserRepository;
 
 import java.io.IOException;
 import java.util.List;

@@ -19,8 +19,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import ru.vsuet.team.tutoringbackend.auth.JwtAuthFilter;
-import ru.vsuet.team.tutoringbackend.auth.JwtService;
-import ru.vsuet.team.tutoringbackend.user.UserRepository;
+import ru.vsuet.team.tutoringbackend.auth.service.JwtService;
+import ru.vsuet.team.tutoringbackend.user.repository.UserRepository;
 
 import java.util.List;
 

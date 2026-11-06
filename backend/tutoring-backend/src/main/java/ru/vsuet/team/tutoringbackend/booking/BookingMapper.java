@@ -2,6 +2,7 @@ package ru.vsuet.team.tutoringbackend.booking;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import ru.vsuet.team.tutoringbackend.booking.dto.BookingResponse;
 import ru.vsuet.team.tutoringbackend.catalog.service.RatingService;
 import ru.vsuet.team.tutoringbackend.config.AppProperties;
 import ru.vsuet.team.tutoringbackend.user.User;

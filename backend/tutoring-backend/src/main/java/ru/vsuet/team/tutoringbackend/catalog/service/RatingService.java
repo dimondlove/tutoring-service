@@ -3,7 +3,7 @@ package ru.vsuet.team.tutoringbackend.catalog.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.vsuet.team.tutoringbackend.booking.BookingRepository;
+import ru.vsuet.team.tutoringbackend.booking.repository.BookingRepository;
 
 import java.util.Collection;
 import java.util.HashMap;

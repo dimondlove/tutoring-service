@@ -1,6 +1,6 @@
 package ru.vsuet.team.tutoringbackend.schedule.dto;
 
-import ru.vsuet.team.tutoringbackend.schedule.TimeOff;
+import ru.vsuet.team.tutoringbackend.schedule.entity.TimeOff;
 
 import java.time.Instant;
 
