@@ -14,6 +14,8 @@ java {
     }
 }
 
+val mockitoAgent = configurations.create("mockitoAgent")
+
 repositories {
     mavenCentral()
 }
@@ -46,7 +48,12 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:testcontainers-postgresql")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    mockitoAgent("org.mockito:mockito-core") { isTransitive = false }
 }
 
 tasks.jar { enabled = false }
-tasks.test { useJUnitPlatform() }
+tasks.test {
+    useJUnitPlatform()
+    jvmArgs("-javaagent:${mockitoAgent.asPath}")
+}

@@ -27,17 +27,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
             throws ServletException, IOException {
         String header = req.getHeader("Authorization");
-        if (header == null || !header.startsWith("Bearer ")) {
+        if (header != null && header.startsWith("Bearer ")) {
             try {
-                Claims claims = jwtService.parse(header.substring(7));
-
-                userRepository.findById(Long.valueOf(claims.getSubject())).filter(User::isEnabled).ifPresent(user -> {
-                    var principal = new AuthUser(user.getId(), user.getEmail(), user.getRole());
+                Claims c = jwtService.parse(header.substring(7));
+                userRepository.findById(Long.valueOf(c.getSubject())).filter(User::isEnabled).ifPresent(u -> {
+                    var principal = new AuthUser(u.getId(), u.getEmail(), u.getRole());
                     var auth = new UsernamePasswordAuthenticationToken(principal, null,
-                            List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));
+                            List.of(new SimpleGrantedAuthority("ROLE_" + u.getRole().name())));
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 });
-            } catch (JwtException | IllegalArgumentException ignored) {}
+            } catch (JwtException | IllegalArgumentException ignored) {
+                // невалидный или просроченный токен: запрос остаётся анонимным, защищённые пути ответят 401
+            }
         }
         chain.doFilter(req, res);
     }
