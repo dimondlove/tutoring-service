@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Админ-панель</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <a href="index.html">РепетиторПлюс — админ</a>
+  <a href="index.html">Выйти</a>
+</header>
+
+<h1>Админ-панель</h1>
+
+<h2>Сводка</h2>
+<ul>
+  <li>Пользователей: 1 240</li>
+  <li>Репетиторов: 186</li>
+  <li>Проведено занятий: 3 540</li>
+  <li>Оборот: 2 431 000 ₽</li>
+</ul>
+
+<h2>Модерация репетиторов</h2>
+<div id="moderationList"></div>
+
+<h2>Жалобы от пользователей</h2>
+<table>
+  <thead>
+    <tr><th>От кого</th><th>На кого</th><th>Текст</th><th>Дата</th><th></th></tr>
+  </thead>
+  <tbody id="userComplaintsBody"></tbody>
+</table>
+
+<h2>Оценки (просмотр)</h2>
+<table>
+  <thead>
+    <tr><th>От кого</th><th>Кому</th><th>Оценка</th><th>Дата</th></tr>
+  </thead>
+  <tbody id="userRatingsBody"></tbody>
+</table>
+
+<h2>Пользователи</h2>
+<table>
+  <thead><tr><th>Имя</th><th>Роль</th><th>Статус</th><th></th></tr></thead>
+  <tbody id="usersBody"></tbody>
+</table>
+
+<h2>Все бронирования (из localStorage)</h2>
+<table>
+  <thead><tr><th>Ученик</th><th>Репетитор</th><th>Предмет</th><th>Дата</th><th>Время</th><th>Статус</th></tr></thead>
+  <tbody id="bookingsBody"></tbody>
+</table>
+
+<script>
+/* ---------- хранилище (заменить на API) ---------- */
+const KEY_C = 'rp_complaints';
+const KEY_R = 'rp_ratings';
+const getComplaints = () => JSON.parse(localStorage.getItem(KEY_C) || '[]');
+const saveComplaints = a => localStorage.setItem(KEY_C, JSON.stringify(a));
+const getRatings = () => JSON.parse(localStorage.getItem(KEY_R) || '[]');
+
+/* ---------- жалобы: просмотр + удаление ---------- */
+function renderUserComplaints() {
+  const arr = getComplaints();
+  userComplaintsBody.innerHTML = arr.length
+    ? arr.slice().reverse().map(c => `
+        <tr>
+          <td>${c.fromName}<br><span class="muted">${c.fromRole}</span></td>
+          <td>${c.toName}<br><span class="muted">${c.toRole}</span></td>
+          <td>${c.text}</td>
+          <td>${c.date}</td>
+          <td><button data-del-c="${c.id}">Удалить</button></td>
+        </tr>
+      `).join('')
+    : '<tr><td colspan="5">Жалоб нет</td></tr>';
+
+  userComplaintsBody.querySelectorAll('[data-del-c]').forEach(b => b.onclick = () => {
+    if (!confirm('Удалить жалобу?')) return;
+    const id = +b.dataset.delC;
+    saveComplaints(getComplaints().filter(c => c.id !== id));
+    renderUserComplaints();
+  });
+}
+renderUserComplaints();
+
+/* ---------- оценки: только просмотр ---------- */
+function renderUserRatings() {
+  const arr = getRatings();
+  userRatingsBody.innerHTML = arr.length
+    ? arr.slice().reverse().map(r => `
+        <tr>
+          <td>${r.fromName} <span class="muted">(${r.fromRole})</span></td>
+          <td>${r.toName} <span class="muted">(${r.toRole})</span></td>
+          <td>${r.score} / 5</td>
+          <td>${r.date}</td>
+        </tr>
+      `).join('')
+    : '<tr><td colspan="4">Оценок нет</td></tr>';
+}
+renderUserRatings();
+
+/* ---------- модерация ---------- */
+const moderation = [
+  { name:'Ольга Никитина', subject:'Химия · Биология', docs:'Диплом МГУ' },
+  { name:'Павел Егоров', subject:'Английский язык', docs:'CELTA' }
+];
+
+function renderModeration() {
+  moderationList.innerHTML = moderation.map((m, i) => `
+    <div class="item">
+      <b>${m.name}</b> — ${m.subject} — ${m.docs}
+      ${m.status
+        ? `<i>[${m.status === 'approved' ? 'одобрен' : 'отклонён'}]</i>`
+        : `<button data-ok="${i}">Одобрить</button> <button data-no="${i}">Отклонить</button>`}
+    </div>
+  `).join('');
+  moderationList.querySelectorAll('[data-ok]').forEach(b => b.onclick = () => { moderation[+b.dataset.ok].status = 'approved'; renderModeration(); });
+  moderationList.querySelectorAll('[data-no]').forEach(b => b.onclick = () => { moderation[+b.dataset.no].status = 'rejected'; renderModeration(); });
+}
+renderModeration();
+
+/* ---------- пользователи ---------- */
+const users = [
+  { name:'Иван Петров', role:'Ученик', status:'active' },
+  { name:'Анна Смирнова', role:'Репетитор', status:'active' },
+  { name:'Сергей Павлов', role:'Репетитор', status:'blocked' }
+];
+
+function renderUsers() {
+  usersBody.innerHTML = users.map((u, i) => `
+    <tr>
+      <td>${u.name}</td>
+      <td>${u.role}</td>
+      <td>${u.status === 'active' ? 'активен' : 'заблокирован'}</td>
+      <td>${u.status === 'active'
+        ? `<button data-block="${i}">Заблокировать</button>`
+        : `<button data-unblock="${i}">Разблокировать</button>`}</td>
+    </tr>
+  `).join('');
+  usersBody.querySelectorAll('[data-block]').forEach(b => b.onclick = () => { users[+b.dataset.block].status = 'blocked'; renderUsers(); });
+  usersBody.querySelectorAll('[data-unblock]').forEach(b => b.onclick = () => { users[+b.dataset.unblock].status = 'active'; renderUsers(); });
+}
+renderUsers();
+
+/* ---------- брони (как было) ---------- */
+const allBookings = JSON.parse(localStorage.getItem('rp_bookings') || '[]');
+bookingsBody.innerHTML = allBookings.map(b => `
+  <tr>
+    <td>${b.student}</td>
+    <td>${b.tutorName}</td>
+    <td>${b.subject}</td>
+    <td>${b.date}</td>
+    <td>${b.time}</td>
+    <td>${b.status}</td>
+  </tr>
+`).join('') || '<tr><td colspan="6">Пока нет бронирований</td></tr>';
+</script>
+</body>
+</html>

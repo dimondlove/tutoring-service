@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Регистрация — РепетиторПлюс</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <a href="index.html">РепетиторПлюс</a>
+  <a href="index.html">На главную</a>
+</header>
+
+<h1>Регистрация</h1>
+<p class="muted">Добро пожаловать в наш сервис! Заполните свои данные, что бы мы смогли продолжить работу.</p>
+
+<div class="tabs" id="roleTabs">
+    <button type="button" data-role="student" class="active">Я ученик</button>
+    <button type="button" data-role="tutor">Я репетитор</button>
+  </div>
+  
+  <div class="reg-layout">
+  
+    <!-- Левая колонка: кружок с фото -->
+    <div class="reg-avatar-col">
+      <div class="avatar-big" id="avatarPreview">?</div>
+      <input type="file" id="avatarInput" accept="image/*" hidden>
+      <button type="button" id="avatarPick">Загрузить фото</button>
+      <button type="button" id="avatarClear">Удалить</button>
+      <p class="muted" style="font-size:12px; margin:8px 0 0">
+        До 2 МБ, JPG/PNG
+      </p>
+    </div>
+  
+    <!-- Правая колонка: поля -->
+    <div class="reg-fields-col">
+      <form id="regForm">
+  
+        <!-- Общие учётные данные (заглушка) -->
+        <fieldset id="fields-account">
+          <legend>Учётные данные</legend>
+          <label>Логин
+            <input id="acc_login" type="text" autocomplete="username" required>
+          </label>
+          <label>Пароль
+            <input id="acc_password" type="password" autocomplete="new-password" required>
+          </label>
+        </fieldset>
+  
+        <!-- Ученик -->
+        <fieldset id="fields-student">
+          <legend>Данные ученика</legend>
+          <label>Фамилия
+            <input id="s_surname" required>
+          </label>
+          <label>Имя
+            <input id="s_name" required>
+          </label>
+          <label>Телефон
+            <input id="s_phone" type="tel" required>
+          </label>
+          <label>Возраст
+            <input id="s_age" type="number" min="5" max="100" required>
+          </label>
+        </fieldset>
+  
+        <!-- Репетитор -->
+        <fieldset id="fields-tutor" class="hidden">
+          <legend>Данные репетитора</legend>
+          <label>Фамилия
+            <input id="t_surname" required>
+          </label>
+          <label>Имя
+            <input id="t_name" required>
+          </label>
+          <label>Телефон
+            <input id="t_phone" type="tel" required>
+          </label>
+          <label>Образование (что получил)
+            <input id="t_education" placeholder="Например: высшее, МГУ, математика" required>
+          </label>
+          <label>Когда получил
+            <input id="t_edu_date" type="date" required>
+          </label>
+          <label>Стаж работы, лет
+            <input id="t_experience" type="number" min="0" max="80" required>
+          </label>
+        </fieldset>
+  
+        <p>
+          <button type="submit">Зарегистрироваться</button>
+          <a href="index.html">Отмена</a>
+        </p>
+      </form>
+    </div>
+  </div>
+  
+  <div id="result"></div>
+  
+  <script>
+  /* ---------- кеш элементов ---------- */
+  const $roleTabs      = document.getElementById('roleTabs');
+  const $form          = document.getElementById('regForm');
+  const $result        = document.getElementById('result');
+  const $fieldsStudent = document.getElementById('fields-student');
+  const $fieldsTutor   = document.getElementById('fields-tutor');
+  
+  const $accLogin    = document.getElementById('acc_login');
+  const $accPassword = document.getElementById('acc_password');
+  
+  const $sSurname = document.getElementById('s_surname');
+  const $sName    = document.getElementById('s_name');
+  const $sPhone   = document.getElementById('s_phone');
+  const $sAge     = document.getElementById('s_age');
+  
+  const $tSurname    = document.getElementById('t_surname');
+  const $tName       = document.getElementById('t_name');
+  const $tPhone      = document.getElementById('t_phone');
+  const $tEducation  = document.getElementById('t_education');
+  const $tEduDate    = document.getElementById('t_edu_date');
+  const $tExperience = document.getElementById('t_experience');
+  
+  const $avatarPreview = document.getElementById('avatarPreview');
+  const $avatarInput   = document.getElementById('avatarInput');
+  const $avatarPick    = document.getElementById('avatarPick');
+  const $avatarClear   = document.getElementById('avatarClear');
+  
+  /* ---------- выбор роли ---------- */
+  let currentRole = 'student';
+  
+  function setRole(role) {
+    currentRole = role;
+    const isStudent = role === 'student';
+  
+    $fieldsStudent.classList.toggle('hidden', !isStudent);
+    $fieldsTutor.classList.toggle('hidden', isStudent);
+    $fieldsStudent.querySelectorAll('input').forEach(i => i.disabled = !isStudent);
+    $fieldsTutor.querySelectorAll('input').forEach(i => i.disabled = isStudent);
+  
+    $roleTabs.querySelectorAll('button').forEach(b =>
+      b.classList.toggle('active', b.dataset.role === role));
+  
+    renderAvatar(); // инициалы зависят от активной роли
+  }
+  $roleTabs.querySelectorAll('button').forEach(b =>
+    b.onclick = () => setRole(b.dataset.role));
+  setRole('student');
+  
+  /* ---------- работа с фото ---------- */
+  let avatarDataUrl = null;
+  
+  function getInitials() {
+    const sur = currentRole === 'student' ? $sSurname.value : $tSurname.value;
+    const nm  = currentRole === 'student' ? $sName.value    : $tName.value;
+    const a = (sur.trim()[0] || '');
+    const b = (nm.trim()[0]  || '');
+    return (a + b).toUpperCase() || '?';
+  }
+  
+  function renderAvatar() {
+    if (avatarDataUrl) {
+      $avatarPreview.innerHTML = `<img src="${avatarDataUrl}" alt="Фото">`;
+    } else {
+      $avatarPreview.textContent = getInitials();
+    }
+  }
+  
+  $avatarPick.onclick = () => $avatarInput.click();
+  
+  $avatarInput.onchange = () => {
+    const file = $avatarInput.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Выберите изображение');
+      $avatarInput.value = '';
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Максимум 2 МБ');
+      $avatarInput.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      avatarDataUrl = e.target.result;
+      renderAvatar();
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  $avatarClear.onclick = () => {
+    avatarDataUrl = null;
+    $avatarInput.value = '';
+    renderAvatar();
+  };
+  
+  // Живые инициалы при вводе имени/фамилии
+  [$sSurname, $sName, $tSurname, $tName].forEach(inp =>
+    inp.addEventListener('input', renderAvatar));
+  
+  /* ---------- хранилище (заменить на API) ---------- */
+  const KEY_U = 'rp_users';
+  const getUsers = () => JSON.parse(localStorage.getItem(KEY_U) || '[]');
+  const saveUsers = a => localStorage.setItem(KEY_U, JSON.stringify(a));
+  
+  /* ---------- регистрация ---------- */
+  $form.onsubmit = (e) => {
+    e.preventDefault();
+  
+    let user;
+    if (currentRole === 'student') {
+      user = {
+        id: Date.now(),
+        role: 'Ученик',
+        login: $accLogin.value.trim(),
+        password: $accPassword.value,
+        surname: $sSurname.value.trim(),
+        name: $sName.value.trim(),
+        phone: $sPhone.value.trim(),
+        age: +$sAge.value,
+        photo: avatarDataUrl,
+        createdAt: new Date().toISOString()
+      };
+    } else {
+      user = {
+        id: Date.now(),
+        role: 'Репетитор',
+        login: $accLogin.value.trim(),
+        password: $accPassword.value,
+        surname: $tSurname.value.trim(),
+        name: $tName.value.trim(),
+        phone: $tPhone.value.trim(),
+        education: $tEducation.value.trim(),
+        educationDate: $tEduDate.value,
+        experience: +$tExperience.value,
+        photo: avatarDataUrl,
+        createdAt: new Date().toISOString()
+      };
+    }
+  
+    const users = getUsers();
+    users.push(user);
+    saveUsers(users);
+  
+    const cabinet = currentRole === 'student' ? 'student.html' : 'tutor.html';
+    const labels = {
+      role: 'Роль', login: 'Логин', password: 'Пароль',
+      surname: 'Фамилия', name: 'Имя', phone: 'Телефон',
+      age: 'Возраст', education: 'Образование', educationDate: 'Дата получения',
+      experience: 'Стаж работы (лет)'
+    };
+  
+    const avatarHtml = user.photo
+      ? `<img src="${user.photo}" alt="Фото" style="width:96px;height:96px;border-radius:50%;object-fit:cover;margin-bottom:8px">`
+      : `<div class="avatar-big" style="margin:0 0 8px">${getInitials()}</div>`;
+  
+    // пароль в итоговой карточке не показываем
+    const rows = Object.entries(user)
+      .filter(([k]) => !['id','createdAt','photo','password'].includes(k))
+      .map(([k, v]) => `<li>${labels[k] || k}: <b>${v || '—'}</b></li>`)
+      .join('');
+  
+    $result.innerHTML = `
+      <div class="result">
+        <h2>Готово!</h2>
+        ${avatarHtml}
+        <p>Вы зарегистрированы как <b>${user.role}</b>.</p>
+        <ul>${rows}</ul>
+        <p>
+          <a href="${cabinet}">Перейти в личный кабинет →</a><br>
+          <a href="index.html">На главную</a>
+        </p>
+        <p><a href="registration.html">Зарегистрировать ещё одного пользователя</a></p>
+      </div>
+    `;
+  
+    // сброс формы и фото
+    $form.reset();
+    avatarDataUrl = null;
+    $avatarInput.value = '';
+    setRole(currentRole);
+  };
+  </script>
+  </body>
+  </html>
