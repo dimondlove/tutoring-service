@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кабинет репетитора</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <a href="index.html">РепетиторПлюс</a>
+  <a href="index.html">Выйти</a>
+</header>
+
+<h1>Кабинет репетитора: Анна Смирнова</h1>
+
+<div class="tabs">
+  <button class="active" data-tab="home">Главная</button>
+  <button data-tab="students">Мои ученики</button>
+  <button data-tab="services">Управление услугами</button>
+  <button data-tab="education">Управление образование</button>
+</div>
+
+<section id="tab-home">
+  <h2>Сегодня</h2>
+  <ul id="todayList"></ul>
+  <h2>Расписание по датам</h2>
+  <div id="scheduleList"></div>
+</section>
+
+<section id="tab-students" class="hidden">
+  <h2>Мои ученики</h2>
+  <div id="studentsList"></div>
+</section>
+
+<section id="tab-services" class="hidden">
+  <h2>Мои услуги</h2>
+  <table>
+    <thead><tr><th>Предмет</th><th>Цена, ₽/час</th><th></th></tr></thead>
+    <tbody id="servicesBody"></tbody>
+  </table>
+  <p>
+    <input id="newSubject" placeholder="Новый предмет">
+    <input id="newPrice" type="number" placeholder="Цена">
+    <button id="addService">Добавить</button>
+  </p>
+</section>
+
+<section id="tab-education" class="hidden">
+  <h2>Моё образование</h2>
+  <table>
+    <thead><tr><th>Образование / Курсы</th><th>Организация</th><th>Дата получения</th></tr></thead>
+    <tbody id="educationBody"></tbody>
+  </table>
+  <p>
+    <input id="newEducation" placeholder="Образование / Курсы">
+    <input id="newOrg" placeholder="Организация">
+    <input id="newEduDate" type="date">
+    <button id="addEducation">Добавить</button>
+  </p>
+</section>
+
+<!-- Модалка жалобы -->
+<div class="modal" id="complaintModal">
+  <div class="modal-box">
+    <h3 id="complaintTitle">Жалоба</h3>
+    <p>Опишите проблему:</p>
+    <textarea id="complaintText" rows="4"></textarea>
+    <div style="margin-top:12px">
+      <button id="complaintSubmit">Отправить</button>
+      <button data-close="complaintModal">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- кто я ---------- */
+const ME = { id: 1, name: 'Анна Смирнова', role: 'Репетитор' };
+
+/* ---------- хранилище (заменить на API) ---------- */
+const KEY_C = 'rp_complaints';
+const KEY_R = 'rp_ratings';
+const getComplaints = () => JSON.parse(localStorage.getItem(KEY_C) || '[]');
+const saveComplaints = a => localStorage.setItem(KEY_C, JSON.stringify(a));
+const getRatings = () => JSON.parse(localStorage.getItem(KEY_R) || '[]');
+const saveRatings = a => localStorage.setItem(KEY_R, JSON.stringify(a));
+const myRating = to => getRatings().find(r => r.from === ME.id && r.to === to);
+
+/* ---------- утилиты ---------- */
+const fmt = iso => new Date(iso + 'T00:00:00').toLocaleDateString('ru-RU');
+const daysFromNow = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); };
+function initials(name) {
+  return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+}
+
+/* ---------- главная ---------- */
+const todaySchedule = [
+  { time:'14:00', student:'Иван Петров', subject:'Математика' },
+  { time:'16:00', student:'Мария Соколова', subject:'Физика' }
+];
+
+const storedLessons = JSON.parse(localStorage.getItem('rp_bookings') || '[]')
+  .filter(b => b.tutorId === 1 && b.status === 'upcoming')
+  .map(b => ({ time: b.time, student: b.student, subject: b.subject, date: b.date }));
+
+todayList.innerHTML = todaySchedule.map(l =>
+  `<li>${l.time} — ${l.student} · ${l.subject}</li>`).join('') || '<li>Нет занятий</li>';
+
+const byDate = {};
+todaySchedule.forEach(l => {
+  const key = new Date().toISOString().slice(0,10);
+  (byDate[key] ||= []).push(l);
+});
+storedLessons.forEach(l => (byDate[l.date] ||= []).push(l));
+
+scheduleList.innerHTML = Object.keys(byDate).sort().map(date => `
+  <div>
+    <h3>${fmt(date)}</h3>
+    <ul>${byDate[date].map(l => `<li>${l.time} — ${l.student} · ${l.subject}</li>`).join('')}</ul>
+  </div>
+`).join('');
+
+/* ---------- ученики ---------- */
+const students = [
+  { id:101, name:'Иван Петров', age:17, phone:'+7 900 123-45-67', subject:'Математика', date:daysFromNow(1), time:'16:00', rating:4.8, status:'pending',  photo:null },
+  { id:102, name:'Мария Соколова', age:16, phone:'+7 900 765-43-21', subject:'Физика', date:daysFromNow(1), time:'18:00', rating:5.0, status:'pending',  photo:null },
+  { id:103, name:'Артём Волков', age:18, phone:'+7 900 111-22-33', subject:'Физика', date:daysFromNow(3), time:'12:00', rating:4.6, status:'accepted', photo:null }
+];
+
+function renderStudents() {
+  studentsList.innerHTML = students.map((s, i) => {
+    const rated = myRating(s.id);
+    return `
+      <div class="student-card">
+        <div class="avatar">
+          ${s.photo
+            ? `<img src="${s.photo}" alt="${s.name}">`
+            : initials(s.name)}
+        </div>
+        <div class="student-body">
+          <b>${s.name}</b>, ${s.age} лет — рейтинг ${s.rating}<br>
+          Тел: ${s.phone}<br>
+          Предмет: ${s.subject} · ${fmt(s.date)} ${s.time}<br>
+          Статус: ${s.status === 'pending' ? 'новая заявка'
+                  : s.status === 'accepted' ? 'принят' : 'отклонён'}
+          <div>
+            ${s.status === 'pending' ? `
+              <button data-accept="${i}">Принять</button>
+              <button data-decline="${i}">Отказаться</button>
+            ` : ''}
+            <button data-complaint="${i}">Пожаловаться</button>
+            ${rated
+              ? `<button disabled>Оценено: ${rated.score}/5</button>`
+              : `<button data-rate="${i}">Оценить</button>`}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  studentsList.querySelectorAll('[data-accept]').forEach(b => b.onclick = () => {
+    students[+b.dataset.accept].status = 'accepted'; renderStudents();
+  });
+  studentsList.querySelectorAll('[data-decline]').forEach(b => b.onclick = () => {
+    students[+b.dataset.decline].status = 'declined'; renderStudents();
+  });
+  studentsList.querySelectorAll('[data-complaint]').forEach(b => b.onclick = () => {
+    const s = students[+b.dataset.complaint];
+    openComplaint(s.id, s.name, 'Ученик');
+  });
+  studentsList.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => {
+    const s = students[+b.dataset.rate];
+    rate(s.id, s.name, 'Ученик');
+  });
+}
+renderStudents();
+
+/* ---------- жалоба (можно много раз) ---------- */
+let complaintTarget = null;
+
+function openComplaint(toId, toName, toRole) {
+  complaintTarget = { toId, toName, toRole };
+  complaintTitle.textContent = `Жалоба на: ${toName} (${toRole})`;
+  complaintText.value = '';
+  complaintModal.classList.add('active');
+}
+
+complaintSubmit.onclick = () => {
+  const text = complaintText.value.trim();
+  if (!text) return alert('Опишите проблему');
+  const arr = getComplaints();
+  arr.push({
+    id: Date.now(),
+    fromId: ME.id, fromName: ME.name, fromRole: ME.role,
+    toId: complaintTarget.toId, toName: complaintTarget.toName, toRole: complaintTarget.toRole,
+    text,
+    date: new Date().toISOString().slice(0, 10)
+  });
+  saveComplaints(arr);
+  complaintModal.classList.remove('active');
+  alert('Жалоба отправлена');
+};
+
+/* ---------- оценка (только один раз) ---------- */
+function rate(toId, toName, toRole) {
+  if (!toId) return alert('Нет ученика для оценки');
+  if (myRating(toId)) return alert('Вы уже оценили ' + toName);
+  const s = prompt(`Оценка для ${toName} (1–5):`);
+  if (s === null) return;
+  const n = +s;
+  if (!(n >= 1 && n <= 5)) return alert('Введите число от 1 до 5');
+  const arr = getRatings();
+  arr.push({
+    id: Date.now(),
+    from: ME.id, fromName: ME.name, fromRole: ME.role,
+    to: toId, toName, toRole,
+    score: n,
+    date: new Date().toISOString().slice(0, 10)
+  });
+  saveRatings(arr);
+  alert('Спасибо за оценку!');
+  renderStudents();
+}
+
+/* ---------- услуги ---------- */
+const services = [
+  { subject:'Математика', price:1200 },
+  { subject:'Физика', price:1400 }
+];
+
+function renderServices() {
+  servicesBody.innerHTML = services.map((s, i) => `
+    <tr>
+      <td>${s.subject}</td>
+      <td><input type="number" value="${s.price}" data-i="${i}"></td>
+      <td>
+        <button data-save="${i}">Сохранить</button>
+        <button data-del="${i}">Удалить</button>
+      </td>
+    </tr>`).join('');
+  servicesBody.querySelectorAll('[data-save]').forEach(b => b.onclick = () => {
+    const i = +b.dataset.save;
+    services[i].price = +servicesBody.querySelector(`input[data-i="${i}"]`).value;
+    alert('Сохранено');
+  });
+  servicesBody.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+    services.splice(+b.dataset.del, 1); renderServices();
+  });
+}
+renderServices();
+
+addService.onclick = () => {
+  const s = newSubject.value.trim();
+  const p = +newPrice.value;
+  if (!s || !p) return alert('Заполните поля');
+  services.push({ subject:s, price:p });
+  newSubject.value = ''; newPrice.value = '';
+  renderServices();
+};
+
+/* ---------- образование ---------- */
+const education = [
+  { name:'Высшее, математика', org:'ВГПУ', date:'2015-06-30' }
+];
+
+function renderEducation() {
+  educationBody.innerHTML = education.map(e => `
+    <tr>
+      <td>${e.name}</td>
+      <td>${e.org || '—'}</td>
+      <td>${e.date ? fmt(e.date) : '—'}</td>
+    </tr>`).join('') || '<tr><td colspan="3">Нет записей</td></tr>';
+}
+renderEducation();
+
+addEducation.onclick = () => {
+  const n = newEducation.value.trim();
+  const o = newOrg.value.trim();
+  const d = newEduDate.value;
+  if (!n) return alert('Заполните название');
+  education.push({ name:n, org:o, date:d });
+  newEducation.value = ''; newOrg.value = ''; newEduDate.value = '';
+  renderEducation();
+};
+
+/* ---------- общее ---------- */
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => {
+  document.getElementById(b.dataset.close).classList.remove('active');
+});
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  ['home','students','services','education'].forEach(k =>
+    document.getElementById('tab-' + k).classList.toggle('hidden', b.dataset.tab !== k));
+});
+</script>
+</body>
+</html>
