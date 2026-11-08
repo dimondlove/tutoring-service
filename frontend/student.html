@@ -1,203 +1,41 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Кабинет ученика</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Кабинет ученика — РепетиторПлюс</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
 <header>
   <a href="index.html">РепетиторПлюс</a>
-  <a href="index.html">Выйти</a>
+  <a href="#" data-logout>Выйти</a>
 </header>
-
-<h1>Кабинет ученика</h1>
-
-<section>
-  <h2>Личные данные</h2>
-  <ul>
-    <li>ФИО: Иван Петров</li>
-    <li>Дата рождения: 12.03.2008</li>
-    <li>Город: Москва</li>
-  </ul>
-</section>
-
-<section>
-  <h2>Контакты</h2>
-  <ul>
-    <li>Телефон: +7 900 123-45-67</li>
-    <li>E-mail: ivan@example.com</li>
-  </ul>
-</section>
-
-<div class="tabs">
-  <button class="active" data-tab="upcoming">Предстоящие</button>
-  <button data-tab="past">Прошлые</button>
-</div>
-
-<section id="tab-upcoming">
-  <table>
-    <thead><tr><th>Дата / время</th><th>Преподаватель</th><th>Предмет</th></tr></thead>
-    <tbody id="upcomingBody"></tbody>
-  </table>
-</section>
-
-<section id="tab-past" class="hidden">
-  <table>
-    <thead><tr><th>Дата / время</th><th>Преподаватель</th><th>Предмет</th><th>Статус</th><th>Действия</th></tr></thead>
-    <tbody id="pastBody"></tbody>
-  </table>
-</section>
-
-<div class="modal" id="complaintModal">
-  <div class="modal-box">
-    <h3 id="complaintTitle">Жалоба</h3>
-    <p>Опишите проблему:</p>
-    <textarea id="complaintText" rows="4"></textarea>
-    <div style="margin-top:12px">
-      <button id="complaintSubmit">Отправить</button>
-      <button data-close="complaintModal">Отмена</button>
-    </div>
+<main>
+  <h1>Кабинет ученика</h1>
+  <section>
+    <h2>Личные данные</h2>
+    <ul id="profileInfo"><li>Загружаем профиль…</li></ul>
+  </section>
+  <div class="tabs">
+    <button class="active" data-tab="upcoming">Предстоящие занятия</button>
+    <button data-tab="past">История занятий</button>
   </div>
-</div>
-
-<script>
-/* ---------- кеш элементов (явные id — никаких window-глобалов) ---------- */
-const $upcomingBody   = document.getElementById('upcomingBody');
-const $pastBody       = document.getElementById('pastBody');
-const $tabUpcoming    = document.getElementById('tab-upcoming');
-const $tabPast        = document.getElementById('tab-past');
-const $complaintModal = document.getElementById('complaintModal');
-const $complaintTitle = document.getElementById('complaintTitle');
-const $complaintText  = document.getElementById('complaintText');
-const $complaintSubmit= document.getElementById('complaintSubmit');
-
-/* ---------- кто я ---------- */
-const ME = { id: 100, name: 'Иван Петров', role: 'Ученик' };
-
-/* ---------- хранилище (заменить на API) ---------- */
-const KEY_C = 'rp_complaints';
-const KEY_R = 'rp_ratings';
-const getComplaints = () => JSON.parse(localStorage.getItem(KEY_C) || '[]');
-const saveComplaints = a => localStorage.setItem(KEY_C, JSON.stringify(a));
-const getRatings = () => JSON.parse(localStorage.getItem(KEY_R) || '[]');
-const saveRatings = a => localStorage.setItem(KEY_R, JSON.stringify(a));
-const myRating = to => getRatings().find(r => r.from === ME.id && r.to === to);
-
-/* ---------- утилиты ---------- */
-const fmt = iso => new Date(iso + 'T00:00:00').toLocaleDateString('ru-RU');
-const daysFromNow = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); };
-
-/* ---------- данные (заменить на API) ---------- */
-const stored = JSON.parse(localStorage.getItem('rp_bookings') || '[]')
-  .filter(b => b.status === 'upcoming')
-  .map(b => ({ tutorId: b.tutorId, tutor: b.tutorName, subject: b.subject, date: b.date, time: b.time }));
-
-const demoUpcoming = [
-  { tutorId:1, tutor:'Анна Смирнова', subject:'Математика', date: daysFromNow(1), time:'16:00' }
-];
-const demoPast = [
-  { tutorId:1, tutor:'Анна Смирнова', subject:'Математика',     date: daysFromNow(-7),  time:'14:00', status:'Проведено' },
-  { tutorId:2, tutor:'Дмитрий Козлов',subject:'Английский язык',date: daysFromNow(-14), time:'16:00', status:'Проведено' },
-  { tutorId:3, tutor:'Елена Волкова', subject:'Русский язык',   date: daysFromNow(-21), time:'12:00', status:'Отменено'   }
-];
-
-const upcoming = [...stored, ...demoUpcoming].sort((a,b) => (a.date + a.time).localeCompare(b.date + b.time));
-
-$upcomingBody.innerHTML = upcoming.map(r => `
-  <tr><td>${fmt(r.date)} ${r.time}</td><td>${r.tutor}</td><td>${r.subject}</td></tr>
-`).join('') || '<tr><td colspan="3">Нет предстоящих занятий</td></tr>';
-
-/* ---------- прошлые: рендер + кнопки ---------- */
-function renderPast() {
-  $pastBody.innerHTML = demoPast.map((r, i) => {
-    const rated = r.tutorId ? myRating(r.tutorId) : null;
-    return `
-      <tr>
-        <td>${fmt(r.date)} ${r.time}</td>
-        <td>${r.tutor}</td>
-        <td>${r.subject}</td>
-        <td>${r.status}</td>
-        <td>
-          <button data-complaint="${i}">Пожаловаться</button>
-          ${rated
-            ? `<button disabled>Оценено: ${rated.score}/5</button>`
-            : `<button data-rate="${i}">Оценить</button>`}
-        </td>
-      </tr>`;
-  }).join('');
-
-  $pastBody.querySelectorAll('[data-complaint]').forEach(b => b.onclick = () => {
-    const r = demoPast[+b.dataset.complaint];
-    openComplaint(r.tutorId, r.tutor, 'Репетитор');
-  });
-  $pastBody.querySelectorAll('[data-rate]').forEach(b => b.onclick = () => {
-    const r = demoPast[+b.dataset.rate];
-    rate(r.tutorId, r.tutor, 'Репетитор');
-  });
-}
-renderPast();
-
-/* ---------- жалоба (можно много раз) ---------- */
-let complaintTarget = null;
-
-function openComplaint(toId, toName, toRole) {
-  complaintTarget = { toId, toName, toRole };
-  $complaintTitle.textContent = `Жалоба на: ${toName} (${toRole})`;
-  $complaintText.value = '';
-  $complaintModal.classList.add('active');
-}
-
-$complaintSubmit.onclick = () => {
-  const text = $complaintText.value.trim();
-  if (!text) return alert('Опишите проблему');
-  const arr = getComplaints();
-  arr.push({
-    id: Date.now(),
-    fromId: ME.id, fromName: ME.name, fromRole: ME.role,
-    toId: complaintTarget.toId, toName: complaintTarget.toName, toRole: complaintTarget.toRole,
-    text,
-    date: new Date().toISOString().slice(0, 10)
-  });
-  saveComplaints(arr);
-  $complaintModal.classList.remove('active');
-  alert('Жалоба отправлена');
-};
-
-/* ---------- оценка (только один раз) ---------- */
-function rate(toId, toName, toRole) {
-  if (!toId) return alert('Нет репетитора для оценки');
-  if (myRating(toId)) return alert('Вы уже оценили ' + toName);
-  const s = prompt(`Оценка для ${toName} (1–5):`);
-  if (s === null) return;
-  const n = +s;
-  if (!(n >= 1 && n <= 5)) return alert('Введите число от 1 до 5');
-  const arr = getRatings();
-  arr.push({
-    id: Date.now(),
-    from: ME.id, fromName: ME.name, fromRole: ME.role,
-    to: toId, toName, toRole,
-    score: n,
-    date: new Date().toISOString().slice(0, 10)
-  });
-  saveRatings(arr);
-  alert('Спасибо за оценку!');
-  renderPast();
-}
-
-/* ---------- общее ---------- */
-document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => {
-  document.getElementById(b.dataset.close).classList.remove('active');
-});
-
-document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
-  document.querySelectorAll('.tabs button').forEach(x => x.classList.remove('active'));
-  b.classList.add('active');
-  $tabUpcoming.classList.toggle('hidden', b.dataset.tab !== 'upcoming');
-  $tabPast.classList.toggle('hidden',     b.dataset.tab !== 'past');
-});
-</script>
+  <section id="tab-upcoming">
+    <table>
+      <thead><tr><th>Дата / время</th><th>Репетитор</th><th>Предмет</th><th>Стоимость</th><th>Статус</th><th>Действие</th></tr></thead>
+      <tbody id="upcomingBody"><tr><td colspan="6">Загрузка…</td></tr></tbody>
+    </table>
+    <p><a href="index.html">Найти репетитора</a></p>
+  </section>
+  <section id="tab-past" class="hidden">
+    <table>
+      <thead><tr><th>Дата / время</th><th>Репетитор</th><th>Предмет</th><th>Статус</th><th>Домашнее задание</th><th>Оценка</th></tr></thead>
+      <tbody id="pastBody"><tr><td colspan="6">Загрузка…</td></tr></tbody>
+    </table>
+  </section>
+</main>
+<script src="app.js"></script>
+<script src="student-page.js"></script>
 </body>
 </html>
